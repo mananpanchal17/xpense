@@ -62,19 +62,23 @@ def report_kind():
     return case((Transaction.entry_type == "refund", "expense"), else_=Transaction.kind)
 
 
+# Postgres needs the GROUP BY expression to be the very same object as the selected one:
+# two report_kind() calls bind separate parameters and are rejected as different expressions.
 def period_totals(user_id, start=None, end=None):
-    query = db.select(report_kind(), func.sum(reporting_amount())).where(Transaction.user_id == user_id, reporting_entries())
+    kind = report_kind()
+    query = db.select(kind, func.sum(reporting_amount())).where(Transaction.user_id == user_id, reporting_entries())
     if start:
         query = query.where(Transaction.date >= start)
     if end:
         query = query.where(Transaction.date < end)
-    values = dict(db.session.execute(query.group_by(report_kind())).all())
+    values = dict(db.session.execute(query.group_by(kind)).all())
     income, expense = values.get("income", 0) or 0, values.get("expense", 0) or 0
     return {"income": income, "expense": expense, "balance": income - expense}
 
 
 def category_rollup(user_id, start, end):
-    return db.session.execute(db.select(Category.name, report_kind(), func.sum(reporting_amount())).join(Transaction, Transaction.category_id == Category.id).where(Transaction.user_id == user_id, reporting_entries(), Transaction.date >= start, Transaction.date < end).group_by(Category.id, Category.name, report_kind()).order_by(Category.name)).all()
+    kind = report_kind()
+    return db.session.execute(db.select(Category.name, kind, func.sum(reporting_amount())).join(Transaction, Transaction.category_id == Category.id).where(Transaction.user_id == user_id, reporting_entries(), Transaction.date >= start, Transaction.date < end).group_by(Category.id, Category.name, kind).order_by(Category.name)).all()
 
 
 def budget_status(user_id, month):
