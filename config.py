@@ -42,7 +42,10 @@ class Config:
     REMEMBER_COOKIE_DURATION = timedelta(days=14)
     PERMANENT_SESSION_LIFETIME = timedelta(hours=8)
     MAX_CONTENT_LENGTH = 2 * 1024 * 1024
-    RATELIMIT_STORAGE_URI = os.getenv("RATELIMIT_STORAGE_URI", "memory://")
+    # Upstash (Vercel Marketplace) provides XPENSE_REDIS_URL; fall back to in-memory locally.
+    RATELIMIT_STORAGE_URI = (
+        os.getenv("RATELIMIT_STORAGE_URI") or os.getenv("XPENSE_REDIS_URL") or "memory://"
+    )
     RATELIMIT_HEADERS_ENABLED = True
     RESET_TOKEN_MAX_AGE = 1800  # 30 minutes
     APP_BASE_URL = os.getenv("APP_BASE_URL", "http://127.0.0.1:5000").rstrip("/")

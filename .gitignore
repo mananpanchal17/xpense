@@ -17,3 +17,6 @@ Presentation/
 *.patch
 *.pptx
 .vercel/
+
+.vercel
+.env*

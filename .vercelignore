@@ -10,3 +10,6 @@ Presentation
 *.pptx
 __pycache__
 .env
+.env.local
+.env*.local
+.vercel
