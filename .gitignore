@@ -1,0 +1,19 @@
+.venv/
+.env
+instance/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.db
+!.vscode/
+# Local checks
+.qa/
+audit-test-temp/
+__pycache__/
+.pytest_cache/
+# Not for the repository
+Presentation/
+*.zip
+*.patch
+*.pptx
+.vercel/

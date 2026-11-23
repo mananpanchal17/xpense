@@ -1,0 +1,12 @@
+.venv
+.qa
+audit-test-temp
+instance
+tests
+Presentation
+*.db
+*.zip
+*.patch
+*.pptx
+__pycache__
+.env

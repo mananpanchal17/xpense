@@ -1,0 +1,24 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+const source = fs.readFileSync('app/static/js/app.js', 'utf8');
+const start = source.indexOf('// Calendar reminders require');
+assert.ok(start >= 0, 'Calendar reminders must require an explicit opt-in');
+let granted = 'granted'; let requests = 0; let notifications = []; let timer; let fetches = 0;
+const listeners = {};
+const button = {disabled:false, textContent:'Enable desktop reminders', addEventListener(type, cb) {listeners[type]=cb;}};
+const status = {textContent:''};
+const snapshot = {dataset:{date:'2026-11-22',month:'2026-11',due:'1',soon:'2',overdue:'0'}};
+class Notification {static permission = 'default'; static async requestPermission() {requests++; Notification.permission=granted; return granted;} constructor(title, options) {notifications.push({title,...options});}}
+const window = {isSecureContext:true, Notification, location:{href:'http://localhost/calendar'}, setInterval(cb) {timer=cb; return 1;},clearInterval() {timer=null;},setTimeout() {return 2;},clearTimeout(){}};
+const context = {window,Notification,AbortController,fetch:async()=>{fetches++; return {ok:true,text:async()=>''};},DOMParser:class {parseFromString(){return {querySelector:()=>snapshot};}},document:{getElementById:id=>id==='browser-reminders' ? button : id==='browser-reminder-status' ? status : id==='calendar-reminder-summary' ? snapshot : null}};
+vm.runInNewContext(source.slice(start), context);
+assert.equal(requests,0); assert.equal(timer,undefined); assert.equal(notifications.length,0);
+await listeners.click();
+assert.equal(requests,1); assert.equal(notifications.length,1); assert.match(status.textContent,/calendar tab stays open/);
+await timer(); assert.equal(notifications.length,1, 'Unchanged reminders are not repeated');
+snapshot.dataset.due='2'; await timer(); assert.equal(notifications.length,2);
+const pendingTick=timer; await listeners.click(); assert.equal(timer,null); const prior=fetches; await pendingTick(); assert.equal(fetches,prior);
+granted='denied'; Notification.permission='default'; await listeners.click();
+assert.equal(timer,null); assert.match(status.textContent,/not enabled/);
+console.log('PASS: calendar reminders only request permission on opt-in, deduplicate updates, and stop on request.');

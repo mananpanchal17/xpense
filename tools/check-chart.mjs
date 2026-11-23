@@ -1,0 +1,12 @@
+import {readFileSync} from 'node:fs';
+import vm from 'node:vm';
+import assert from 'node:assert/strict';
+const canvas={id:'category-chart',closest:()=>({hidden:false}),parentElement:{}};
+const configs=[];
+const context={document:{documentElement:{dataset:{bsTheme:'light'}},getElementById:id=>id==='category-chart'?canvas:null,querySelectorAll:()=>[]},window:{matchMedia:()=>({matches:true,addEventListener(){}}),addEventListener(){}},getComputedStyle:()=>({getPropertyValue:key=>key==='--ink'?'#18181b':'#71717a'}),Intl,fetch:async()=>({ok:true,json:async()=>({labels:[],expense:[],income:[],category_labels:['Refunds','Food'],category_values:[-100,200],currency:'INR'})}),Chart:function(el,config){configs.push(config);return {destroy(){},options:config.options,data:config.data,config,update(){}}}};
+vm.runInNewContext(readFileSync('app/static/js/charts.js','utf8'),context);
+await new Promise(resolve=>setTimeout(resolve,20));
+assert.equal(configs[0].type,'bar','Signed category values require a bar, not absolute doughnut slices');
+assert.deepEqual(Array.from(configs[0].data.datasets[0].data),[-100,200]);
+assert.equal(configs[0].options.indexAxis,'y');
+console.log('PASS: refunds retain their sign in category chart');

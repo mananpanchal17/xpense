@@ -1,0 +1,3 @@
+{% extends "base.html" %}
+{% from 'macros.html' import render_form with context %}
+{% block content %}<div class="form-layout mx-auto"><a href="{{ url_for('accounts.index') }}" class="small">Back to accounts</a><div class="eyebrow mt-4">RECONCILIATION</div><h1 class="h2 fw-bold mt-1 mb-4">Adjust balance</h1><div class="card"><div class="card-body p-4"><p class="small text-body-secondary">An adjustment creates a labelled ledger entry. Existing transaction history is never rewritten.</p>{{ render_form(form, 'Record adjustment') }}</div></div></div>{% endblock %}

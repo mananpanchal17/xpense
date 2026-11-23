@@ -1,0 +1,7 @@
+# Xpense INR ledger and interface design
+Preserve Flask, SQLAlchemy, Jinja, Bootstrap and Chart.js. Work in the copied Xpense 2 folder; never copy production data or secrets. Reporting is INR. Preserve native account currencies and recorded exchange snapshots for compatibility. Existing minor units remain integer hundredths (legacy JPY encoding is preserved rather than silently migrated).
+Phase 2: Centralize ledger queries, storage and money validation; fix converted totals, transfer integrity, currency display, safe export/import round trips. Refunds reduce spending on refund date and reference their original entry; splits share a parent and must conserve the original amount.
+Phase 3: Zinc light/dark tokens, no gradients, tabular financial text, compact rows, executive summary and budget pacing. DESIGN.md records rules.
+Phase 4: Fast keyboard composer (C / Cmd+K), accessible modal, inline category/date/account, monochrome chart tooltips, real pending/error states, sample data limited to empty accounts, responsive layouts and keyboard checks.
+Phase 5: Tenant-bound reads/writes, input validation, CSV formula escaping, secrets and deployment review, complete suite and browser QA. No destructive database migration or deployment.
+Assumptions delegated by user: calendar-month budgets Asia/Kolkata, no carryover, catch-up recurring generation retains anchor dates. No unsolicited architecture rewrite or React migration.

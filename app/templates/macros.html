@@ -1,0 +1,89 @@
+{% macro render_form(form, button='Save', multipart=false, dialog=false, action=none) %}
+  <form method="post" class="{{ 'dialog-form' if dialog else '' }}"
+        {% if action %}action="{{ action }}"{% endif %}
+        {% if multipart %}enctype="multipart/form-data"{% endif %}>
+    {{ form.hidden_tag() }}
+    {% for field in form if field.type not in ['CSRFTokenField','HiddenField','SubmitField'] and field.name not in ['logo_key','icon'] %}
+      {% set accessibility = {'aria-invalid': 'true' if field.errors else 'false'} %}
+      {% if field.errors %}{% set accessibility = {'aria-invalid':'true', 'aria-describedby':field.id ~ '-errors'} %}{% endif %}
+      <div class="mb-3 form-field field-{{ field.name }} {{ 'dialog-optional-field' if dialog and field.name in ['last_four','color','linked_account_id','active','notes','destination_amount','fee'] else '' }}" data-field-name="{{ field.name }}">
+        {% if field.type == "BooleanField" %}
+          <div class="form-check">{{ field(class='form-check-input', **accessibility) }}{{ field.label(class='form-check-label') }}</div>
+        {% else %}
+          {{ field.label(class='form-label') }}
+          {% if field.type == "SelectField" %}{{ field(class='form-select neu-input' + (' is-invalid' if field.errors else ''), **accessibility) }}
+          {% elif field.type == "DecimalField" %}
+            {% set limits = namespace(min=none, max=none) %}
+            {% for validator in field.validators %}
+              {% if validator.__name__|default('') == 'nonnegative_money_valid' %}{% set limits.min = '0' %}{% set limits.max = '999999999.99' %}
+              {% elif validator.__name__|default('') == 'money_valid' %}{% set limits.min = '0.01' %}{% set limits.max = '999999999.99' %}
+              {% elif validator.minimum is defined %}{% set limits.min = validator.minimum %}{% set limits.max = validator.maximum %}
+              {% elif validator.min is defined %}{% set limits.min = validator.min %}{% set limits.max = validator.max %}{% endif %}
+            {% endfor %}
+            {{ field(class='form-control neu-input' + (' is-invalid' if field.errors else ''), step='0.01', min=limits.min, max=limits.max, **accessibility) }}
+          {% elif field.type == "PasswordField" %}{{ field(class='form-control neu-input' + (' is-invalid' if field.errors else ''), autocomplete='current-password' if field.name in ['current_password','password'] and request.endpoint in ['auth.login','auth.profile','auth.delete_account'] else 'new-password', **accessibility) }}
+        {% elif field.name == 'provider' %}{{ field(class='form-control neu-input' + (' is-invalid' if field.errors else ''), list='provider-options', **accessibility) }}
+        {% else %}{{ field(class='form-control neu-input' + (' is-invalid' if field.errors else ''), **accessibility) }}{% endif %}
+      {% endif %}
+      {% if field.errors %}<div id="{{ field.id }}-errors">{% for error in field.errors %}
+        <div class="invalid-feedback d-block mt-1"><i class="bi bi-exclamation-circle me-1" aria-hidden="true"></i>{{ error }}</div>
+      {% endfor %}</div>{% endif %}
+      </div>
+    {% endfor %}
+    <button class="btn btn-primary neu-button px-4" type="submit"><i class="bi bi-check2 me-1" aria-hidden="true"></i>{{ button }}</button>
+  </form>
+  {% if form.provider is defined %}<datalist id="provider-options">{% for provider in banks|default([]) %}<option value="{{ provider }}"></option>{% endfor %}{% for provider in wallets|default([]) %}<option value="{{ provider }}"></option>{% endfor %}</datalist>{% endif %}
+{% endmacro %}
+{% macro delete_button(action, message='Delete this record?') %}
+  <form method="post"
+        action="{{ action }}"
+        class="d-inline"
+        data-confirm="{{ message }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+  </form>
+{% endmacro %}
+{% macro money_value(value, currency=none, size='compact') %}
+  <span class="money-value money-value--{{ size }}" role="text">{{ (value|money_currency(currency)) if currency else (value|money) }}</span>
+{% endmacro %}
+{% macro summary_cards(summary, month_spend=none, scope='Lifetime') %}
+  <section class="executive-summary" aria-label="Ledger summary">
+    {% for label,value in [(scope ~ ' income',summary.income),(scope ~ ' spending',summary.expense),('Net cash flow',summary.balance)] %}
+    <div class="summary-metric"><span class="metric-label">{{ label }}</span><strong class="metric-value {{ 'text-success' if loop.first else '' }}">{{ money_value(value) }}</strong></div>
+    {% endfor %}
+    {% if month_spend is not none %}<div class="summary-metric"><span class="metric-label">Selected month spending</span><strong class="metric-value">{{ money_value(month_spend) }}</strong></div>{% endif %}
+  </section>
+{% endmacro %}
+{% macro transaction_table(rows, editable=false) %}
+<div class="table-responsive">
+<table class="table transaction-table align-middle mb-0">
+  <caption class="visually-hidden">Transactions with native currency amounts. Refunds reduce spending.</caption>
+  <thead><tr><th scope="col">Date</th><th scope="col">Transaction</th><th scope="col" class="payment-column">Payment</th><th scope="col">Type</th><th scope="col" class="text-end">Amount</th>{% if editable %}<th scope="col" class="text-end">Actions</th>{% endif %}</tr></thead>
+  <tbody>
+  {% set group = namespace(date=none) %}
+  {% for row in rows %}
+    {% if group.date != row.date and request.args.get('sort','date_desc') in ['date_desc','date_asc'] %}
+    <tr class="transaction-group"><th scope="rowgroup" colspan="{{ 6 if editable else 5 }}">{% if row.date == today %}Today{% elif (today - row.date).days == 1 %}Yesterday{% else %}{{ row.date.strftime('%d %b %Y') }}{% endif %}</th></tr>
+    {% set group.date = row.date %}{% endif %}
+    <tr data-transaction-id="{{ row.id }}">
+      <td class="text-nowrap"><time datetime="{{ row.date }}">{{ row.date.strftime('%d %b') }}</time></td>
+      <td class="transaction-description"><span class="category-pill">{{ row.category.name }}</span><span class="transaction-note">{{ row.notes or ('Income received' if row.kind == 'income' else 'Expense recorded') }}</span>{% if row.account %}<span class="account-caption">{{ row.account.name }}</span>{% endif %}<span class="mobile-transaction-kind">{{ "Refund" if row.entry_type == "refund" else row.entry_type|title if row.entry_type != "normal" else row.kind|title }}</span></td>
+      <td class="payment-column text-body-secondary">{{ row.payment_method }}</td>
+      <td><span class="transaction-kind {{ 'text-success' if row.kind == 'income' else '' }}">{{ 'Refund' if row.entry_type == 'refund' else row.entry_type|title if row.entry_type != 'normal' else row.kind|title }}</span></td>
+      <td class="text-end text-nowrap">{{ money_value(row.amount_minor, row.currency or 'INR') }}</td>
+      {% if editable %}<td class="text-end text-nowrap">
+      <details class="transaction-actions" open><summary>Actions</summary><div class="transaction-actions-list">
+      {% if row.entry_type == 'normal' and not row.transfer_id and not row.parent_id and not row.refund_of_id %}
+        {% if row.id not in refund_totals %}<a class="btn btn-sm btn-light" href="{{ url_for('expenses.edit',record_id=row.id) }}">Edit</a>{% endif %}
+        {% if row.kind == 'expense' and row.amount_minor > refund_totals.get(row.id,0) %}<button class="btn btn-sm btn-light" type="button" data-refund="{{ row.id }}" data-amount="{{ '%.2f'|format((row.amount_minor - refund_totals.get(row.id,0)) / 100) }}" data-currency="{{ row.currency or 'INR' }}" {% if row.id in refund_totals %}data-refund-only{% endif %} data-category="{{ row.category_id }}">Refund / split</button>{% endif %}
+        {% if row.id not in refund_totals %}{{ delete_button(url_for('expenses.delete',record_id=row.id)) }}{% endif %}
+      {% else %}<span class="text-body-secondary small">Linked entry</span>{% if row.entry_type == 'normal' and row.kind == 'expense' and row.parent_id and row.amount_minor > refund_totals.get(row.id,0) %}<button class="btn btn-sm btn-light" type="button" data-refund="{{ row.id }}" data-amount="{{ '%.2f'|format((row.amount_minor - refund_totals.get(row.id,0)) / 100) }}" data-currency="{{ row.currency or 'INR' }}" data-refund-only data-category="{{ row.category_id }}">Refund</button>{% endif %}{% endif %}
+      </div></details></td>{% endif %}
+    </tr>
+  {% else %}
+    <tr><td colspan="{{ 6 if editable else 5 }}"><div class="empty-state"><strong>Your ledger starts here</strong><p>Add your first expense or explore with sample transactions.</p><a class="btn btn-primary" data-compose href="{{ url_for('expenses.add') }}">Add expense</a><form method="post" action="{{ '/expenses/sample-data' }}">{{ action_form.hidden_tag() }}<button class="btn btn-light" type="submit">Load Sample Data</button></form></div></td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endmacro %}

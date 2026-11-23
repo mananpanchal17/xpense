@@ -1,0 +1,22 @@
+import vm from 'node:vm';
+import {readFileSync} from 'node:fs';
+import assert from 'node:assert/strict';
+const context={window:{},URLSearchParams,Intl,document:{querySelector:()=>null}};
+vm.runInNewContext(readFileSync('app/static/js/ledger-filters.js','utf8'),context);
+const {minorFromInput,createIndex,select}=context.window.XpenseFilters;
+assert.equal(minorFromInput('0.10'),10);
+assert.equal(minorFromInput('999999999.99'),99999999999);
+for(const bad of ['NaN','Infinity','1.999','-1','1e3','9999999999']) assert.throws(()=>minorFromInput(bad));
+const rows=[{id:1,date:'2026-10-01',category_id:1,category:'Food',account_id:null,kind:'expense',amount_minor:10,notes:'Coffee'},{id:2,date:'2026-10-02',category_id:2,category:'Travel',account_id:3,kind:'expense',amount_minor:20,notes:'Metro'},{id:3,date:'2026-10-02',category_id:1,category:'Food',account_id:3,kind:'income',amount_minor:30,notes:'Refund'}];
+const index=createIndex(rows);
+assert.deepEqual(Array.from(select(index,new URLSearchParams('category=1&kind=expense&min_amount=0.10&max_amount=0.10')).map(r=>r.id)),[1]);
+assert.deepEqual(Array.from(select(index,new URLSearchParams('account=3&sort=amount_asc')).map(r=>r.id)),[2,3]);
+assert.deepEqual(Array.from(select(index,new URLSearchParams('q=COFFEE')).map(r=>r.id)),[1]);
+assert.deepEqual(Array.from(select(index,new URLSearchParams('start=2026-10-02&end=2026-10-02')).map(r=>r.id)),[3,2]);
+assert.throws(()=>select(index,new URLSearchParams('start=2026-11-01&end=2026-10-01')));
+assert.deepEqual(rows.map(r=>r.id),[1,2,3],'sorting does not mutate snapshot');
+const large=createIndex(Array.from({length:2000},(_,id)=>({...rows[id%3],id})));
+const samples=[];
+for(let i=0;i<200;i++){ const start=performance.now();select(large,new URLSearchParams('category=1&sort=amount_asc'));samples.push(performance.now()-start); }
+samples.sort((a,b)=>a-b);
+console.log('PASS: local filters precision,sort,dates,search; 2000-row kernel p95 '+samples[190].toFixed(3)+'ms');

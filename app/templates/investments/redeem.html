@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import render_form with context %}
+{% block content %}
+<div class="page-heading"><div><div class="eyebrow">RECORD PROCEEDS</div><h1 class="h2">Redeem {{ investment.name }}</h1><p class="text-body-secondary">Enter the proceeds actually received in {{ investment.currency }}. This closes the holding and credits the chosen account once. Your original funding entry stays in your history.</p></div><a class="btn btn-light" href="{{ url_for('investments.index') }}">Back to investments</a></div>
+<section class="card"><div class="card-body">{{ render_form(form, 'Record redemption') }}</div></section>
+{% endblock %}

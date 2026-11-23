@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from 'macros.html' import render_form, delete_button with context %}
+{% block content %}
+<div class="page-heading">
+  <div><div class="eyebrow">MONEY MAP</div><h1>Accounts</h1><p>Track banks, cash, wallets and cards without storing sensitive credentials.</p></div>
+  <div class="d-flex gap-2"><button class="btn btn-primary" type="button" data-dialog-open="account-dialog"><i class="bi bi-plus-lg me-1"></i>Add account</button><a class="btn btn-light" href="{{ url_for('accounts.transfer') }}"><i class="bi bi-arrow-left-right me-1"></i>Transfer</a><a class="btn btn-light" href="{{ url_for('accounts.adjust') }}">Adjust balance</a></div>
+</div>
+<div class="row g-3 mb-4">
+  {% set total = namespace(value=0) %}
+  {% for item in accounts %}{% if item.account.include_in_total and not item.account.linked_account_id and item.account.active and item.converted_minor is not none %}{% set total.value = total.value + item.converted_minor %}{% endif %}{% endfor %}
+  <div class="col-sm-6 col-xl-3"><div class="card"><div class="card-body"><span class="metric-label">Available balance</span><strong class="metric-value d-block">{{ total.value|money }}</strong></div></div></div>
+  <div class="col-sm-6 col-xl-3"><div class="card"><div class="card-body"><span class="metric-label">Active accounts</span><strong class="metric-value d-block">{{ accounts|selectattr('account.active')|list|length }}</strong></div></div></div>
+  <div class="col-sm-6 col-xl-3"><div class="card"><div class="card-body"><span class="metric-label">Currencies</span><strong class="metric-value d-block">{{ accounts|map(attribute='account.currency')|unique|list|length }}</strong></div></div></div>
+  <div class="col-sm-6 col-xl-3"><div class="card"><div class="card-body"><form method="post" action="{{ url_for('accounts.refresh_rates') }}">{{ action_form.hidden_tag() }}<span class="metric-label">Exchange rates</span><button class="btn btn-sm btn-outline-primary mt-2" type="submit">Refresh cached rates</button></form></div></div></div>
+</div>
+<div class="row g-4">
+  <div class="col-12"><div class="row g-3">
+    {% for item in accounts %}
+    <div class="col-md-6 col-xxl-4"><article class="card h-100 {% if not item.account.active %}opacity-75{% endif %}"><div class="card-body">
+      <div class="d-flex justify-content-between align-items-start"><span class="metric-icon"><i class="bi bi-{{ item.account.icon }}"></i></span><span class="badge text-bg-{{ 'success' if item.account.active else 'secondary' }}">{{ 'Active' if item.account.active else 'Archived' }}</span></div>
+      <h2 class="h5 mt-3 mb-1">{{ item.account.name }}</h2><p class="small text-body-secondary mb-2">{{ item.account.provider or item.account.account_type|replace('_', ' ')|title }}{% if item.account.last_four %} · •••• {{ item.account.last_four }}{% endif %}</p>
+      <strong class="metric-value d-block">{{ item.balance_minor|money_currency(item.account.currency) }}</strong><p class="small text-body-secondary">{% if item.converted_minor is not none and item.account.currency != current_user.currency %}{{ item.converted_minor|money }} at cached rate{% endif %} · Last activity {{ item.last_activity or 'None' }}</p>
+      <div class="d-flex gap-2"><a class="btn btn-sm btn-light" href="{{ url_for('accounts.edit', record_id=item.account.id) }}">Edit</a><a class="btn btn-sm btn-light" href="{{ url_for('expenses.index', account=item.account.id) }}">Transactions</a>{% if item.account.active %}<form method="post" action="{{ url_for('accounts.archive', record_id=item.account.id) }}">{{ action_form.hidden_tag() }}<button class="btn btn-sm btn-outline-secondary">Archive</button></form>{% endif %}</div>
+    </div></article></div>
+    {% else %}<div class="empty-state"><div class="empty-illustration"><i class="bi bi-wallet2"></i></div><strong>Add your first account</strong><p>Start with cash, a bank account, or a wallet.</p></div>{% endfor %}
+  </div></div>
+</div>
+<dialog class="neu-dialog" id="account-dialog" data-has-errors="{{ 'true' if form.errors else 'false' }}" aria-labelledby="account-dialog-title">
+  <div class="dialog-panel">
+    <div class="dialog-header"><div><div class="eyebrow">MONEY MAP</div><h2 class="h4 mb-1" id="account-dialog-title">Add account</h2><p class="small text-body-secondary mb-0">Use a name and optional last four digits. Never enter a full card or bank number.</p></div><button class="btn-close" type="button" data-dialog-close aria-label="Close account form"></button></div>
+    <div class="dialog-body">
+      {{ render_form(form, 'Add account', dialog=true) }}
+    </div>
+  </div>
+</dialog>
+{% endblock %}

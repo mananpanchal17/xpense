@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from 'macros.html' import render_form, delete_button with context %}
+{% block content %}
+  <div class="page-heading">
+    <div>
+      <div class="eyebrow">PLAN AHEAD</div>
+      <h1>Recurring expenses</h1>
+    </div>
+    <div class="d-flex gap-2 flex-wrap"><a class="btn btn-primary" href="{{ url_for('expenses.add_recurring') }}">New recurring expense</a>
+    <form method="post" action="{{ url_for('expenses.generate_recurring') }}">
+      {{ action_form.hidden_tag() }}<button class="btn btn-light"><i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>Generate due expenses</button>
+    </form></div>
+  </div>
+  <p class="text-body-secondary">Create rules for rent and subscriptions. Generate overdue entries here or run the daily scheduled command described in the README.</p>
+  <div class="row g-4">
+    <div class="col-12">
+      {% for rule in rules %}
+        <div class="card mb-3">
+          <div class="card-body">
+            <div class="d-flex justify-content-between gap-3">
+              <h2 class="h5">{{ rule.category.name }}</h2>
+              <strong>{{ rule.amount_minor|money_currency(rule.account.currency if rule.account else 'INR') }}</strong>
+            </div>
+            <p class="text-body-secondary mb-2">{{ rule.frequency|title }} · Next due {{ rule.next_due }} · {{ rule.payment_method }}</p>
+            <p class="note-text">{{ rule.notes }}</p>
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge {{ 'text-bg-success' if rule.status == 'active' else 'text-bg-secondary' }} me-auto">{{ rule.status|title }}</span>
+              <a class="btn btn-sm btn-outline-secondary"
+                 href="{{ url_for('expenses.edit_recurring', record_id=rule.id) }}">Edit / pause</a>{{ delete_button(url_for('expenses.delete_recurring', record_id=rule.id), 'Delete this rule? Previously generated transactions will remain.') }}
+              {% if rule.status != 'cancelled' %}<form method="post" action="{{ url_for('expenses.cancel_recurring', record_id=rule.id) }}" class="d-inline">{{ action_form.hidden_tag() }}<button class="btn btn-sm btn-outline-warning" type="submit">Cancel</button></form>{% endif %}
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <div class="card">
+          <div class="card-body py-5 text-center text-body-secondary">No recurring rules yet.</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+{% endblock %}

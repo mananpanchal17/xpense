@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from 'macros.html' import transaction_table with context %}
+{% block content %}
+  <div class="page-heading">
+    <div><div class="eyebrow">YOUR LEDGER</div><h1>Transactions</h1><p>Search, review, and keep every inflow and outflow in one calm workspace.</p></div>
+    <div class="d-flex flex-wrap gap-2 mobile-actions"><a class="btn btn-light" href="{{ url_for('expenses.import_csv') }}"><i class="bi bi-cloud-arrow-up me-1" aria-hidden="true"></i>Import</a><a data-compose class="btn btn-primary" href="{{ url_for('expenses.add') }}"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Add transaction</a></div>
+  </div>
+  <button type="button" class="btn btn-light mobile-filter-trigger mb-3" data-filter-open="transaction-filters-sheet">Filter transactions</button>
+  <div id="filter-home">  <div class="card mb-4">
+    <div class="card-body">
+      <form method="get" id="transaction-filters" data-async-form class="row g-3 align-items-end">
+        <div class="col-12 col-lg-4"><label class="form-label" for="q">Search transactions</label><div class="input-group"><span class="input-group-text bg-transparent border-end-0"><i class="bi bi-search" aria-hidden="true"></i></span><input class="form-control border-start-0" name="q" id="q" value="{{ request.args.get('q', '') }}" maxlength="100" placeholder="Search notes or categories…"></div></div>
+        <div class="col-6 col-lg-2"><label for="kind" class="form-label">Type</label><select name="kind" id="kind" class="form-select"><option value="">All types</option>{% for val in ['income','expense'] %}<option value="{{ val }}" {{ 'selected' if request.args.get("kind") == val }}>{{ val|title }}</option>{% endfor %}</select></div>
+        <div class="col-6 col-lg-3"><label for="category" class="form-label">Category</label><select name="category" id="category" class="form-select"><option value="">All categories</option>{% for id,name in categories %}<option value="{{ id }}" {{ 'selected' if request.args.get("category") == id|string }}>{{ name }}</option>{% endfor %}</select></div>
+        <div class="col-6 col-lg-3"><label for="account" class="form-label">Account</label><select name="account" id="account" class="form-select"><option value="">All accounts</option>{% for id,name in accounts %}<option value="{{ id }}" {{ 'selected' if request.args.get("account") == id|string }}>{{ name }}</option>{% endfor %}</select></div>
+        <div class="col-12 col-lg-3"><label for="sort" class="form-label">Sort by</label><select class="form-select" id="sort" name="sort">{% for val,label in [('date_desc','Newest first'),('date_asc','Oldest first'),('amount_desc','Highest amount'),('amount_asc','Lowest amount'),('category','Category A–Z')] %}<option value="{{ val }}" {{ 'selected' if request.args.get('sort', 'date_desc') == val }}>{{ label }}</option>{% endfor %}</select></div>
+        <div class="col-6 col-lg-2"><label class="form-label" for="start">From date</label><input type="date" class="form-control" id="start" name="start" value="{{ request.args.get('start','') }}"></div>
+        <div class="col-6 col-lg-2"><label class="form-label" for="end">To date</label><input type="date" class="form-control" id="end" name="end" value="{{ request.args.get('end','') }}"></div>
+        <div class="col-6 col-lg-2"><label class="form-label" for="min_amount">Min amount</label><input type="number" step="0.01" min="0" class="form-control" id="min_amount" name="min_amount" value="{{ request.args.get('min_amount','') }}"></div>
+        <div class="col-6 col-lg-2"><label class="form-label" for="max_amount">Max amount</label><input type="number" step="0.01" min="0" class="form-control" id="max_amount" name="max_amount" value="{{ request.args.get('max_amount','') }}"></div>
+        <p id="filter-error" class="field-error mb-0" role="status"></p>
+        <div class="col-12 col-lg-4 d-flex gap-2"><button class="btn btn-primary"><i class="bi bi-funnel me-1" aria-hidden="true"></i>Apply filters</button><a href="{{ url_for('expenses.index') }}" class="btn btn-light" data-filter-clear>Clear</a><a class="btn btn-light ms-auto" href="{{ url_for('reports.export_csv', **request.args) }}" data-filter-export aria-label="Export filtered transactions"><i class="bi bi-download" aria-hidden="true"></i></a></div>
+      </form>
+    </div>
+  </div>
+</div>
+  <dialog id="transaction-filters-sheet" class="filter-dialog" aria-labelledby="filter-title">
+    <div class="sheet-handle" data-sheet-handle aria-hidden="true"><span></span></div>
+    <div class="dialog-header"><h2 id="filter-title">Filter transactions</h2><button type="button" class="btn-close" data-filter-close aria-label="Close filters"></button></div>
+    <div id="filter-sheet-body" class="dialog-body"></div>
+  </dialog>
+  <p class="small text-body-secondary" id="local-filter-status" role="status" aria-live="polite"></p>
+  <div id="ledger-results" data-snapshot-url="{{ url_for('expenses.local_data') }}">
+  <div class="card overflow-hidden">{{ transaction_table(page.items, true) }}</div>
+  <div id="ledger-pagination" class="d-flex justify-content-between align-items-center mt-3"><span class="small text-body-secondary">{{ page.total }} records · Page {{ page.page }} of {{ page.pages or 1 }}</span><div class="d-flex gap-2">{% if page.has_prev %}<a class="btn btn-light btn-sm" href="{{ url_for('expenses.index', **dict(request.args, page=page.prev_num)) }}">Previous</a>{% endif %}{% if page.has_next %}<a class="btn btn-light btn-sm" href="{{ url_for('expenses.index', **dict(request.args, page=page.next_num)) }}">Next</a>{% endif %}</div></div>
+  </div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/ledger-filters.js') }}" defer></script>{% endblock %}

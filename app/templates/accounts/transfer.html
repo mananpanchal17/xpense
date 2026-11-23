@@ -1,0 +1,3 @@
+{% extends "base.html" %}
+{% from 'macros.html' import render_form with context %}
+{% block content %}<div class="form-layout mx-auto"><a href="{{ url_for('accounts.index') }}" class="small">Back to accounts</a><div class="eyebrow mt-4">INTERNAL MOVEMENT</div><h1 class="h2 fw-bold mt-1 mb-4">Transfer money</h1><div class="card"><div class="card-body p-4"><p class="small text-body-secondary">Transfers change account balances but never count as income or spending. Cross-currency transfers use a cached rate or your entered received amount.</p>{{ render_form(form, 'Complete transfer') }}</div></div></div>{% endblock %}

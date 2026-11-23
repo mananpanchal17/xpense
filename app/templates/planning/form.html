@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% from 'macros.html' import render_form with context %}
+{% block content %}
+<div class="page-heading"><div><a class="small" href="{{ back_url }}">← {{ back_label }}</a><h1 class="mt-3">{{ title }}</h1><p>Complete the details below, then save.</p></div></div>
+<section class="card planning-form"><div class="card-body">{{ render_form(form, 'Save') }}</div></section>
+{% endblock %}

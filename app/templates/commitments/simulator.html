@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="form-layout mx-auto">
+    <a class="small" href="{{ url_for('insights.commitments') }}"><i class="bi bi-arrow-left me-1"></i>Back to commitments</a>
+    <div class="eyebrow mt-4">ESTIMATE ONLY</div><h1 class="h2 mt-1">Prepayment simulator</h1>
+    <p class="text-body-secondary">{{ commitment.name }} · This does not change the stored loan.</p>
+    <div class="card"><div class="card-body">
+      <form method="post" class="row g-3 align-items-end"><div class="col-sm-8"><label class="form-label" for="extra_amount">Proposed extra payment</label><input class="form-control" id="extra_amount" name="extra_amount" type="number" step="0.01" min="0" value="{{ extra_amount }}" required></div><div class="col-sm-4"><button class="btn btn-primary w-100">Simulate</button></div></form>
+      {% if result %}<div class="row g-3 mt-3"><div class="col-md-6"><div class="card bg-body-tertiary h-100"><div class="card-body"><h2 class="h5">Reduce tenure</h2><p class="small text-body-secondary">Keep the existing EMI.</p><strong class="metric-value">{{ result.reduce_tenure.months_saved }} months saved</strong><p class="mt-2 mb-0">Interest saved: {{ result.reduce_tenure.interest_saved_minor|money }}</p></div></div></div><div class="col-md-6"><div class="card bg-body-tertiary h-100"><div class="card-body"><h2 class="h5">Reduce EMI</h2><p class="small text-body-secondary">Keep the original tenure.</p><strong class="metric-value">{{ result.reduce_emi.emi_minor|money }}</strong><p class="mt-2 mb-0">Interest saved: {{ result.reduce_emi.interest_saved_minor|money }}</p></div></div></div></div>{% else %}<div class="alert alert-info mt-4 mb-0">Enter an extra payment to compare both options. Interest uses reducing-balance Decimal calculations and rounds the final payment.</div>{% endif %}
+    </div></div>
+  </div>
+{% endblock %}

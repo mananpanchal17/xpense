@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from 'macros.html' import render_form, delete_button with context %}
+{% block content %}
+  <div class="d-flex justify-content-between flex-wrap gap-3 mb-4">
+    <div>
+      <div class="eyebrow">STAY AHEAD</div>
+      <h1 class="h2 fw-bold">Credit card bills</h1>
+    </div>
+    <button class="btn btn-primary" type="button" data-dialog-open="bill-dialog">Add bill</button>
+  </div>
+  <p class="text-body-secondary">Track statement bills separately from transactions so paying a bill does not double-count your spending.</p>
+  <div class="row g-4">
+    <div class="col-12">
+      {% for bill in bills %}
+        <div class="card mb-3 {{ 'border-success' if bill.paid else '' }}">
+          <div class="card-body">
+            <div class="d-flex justify-content-between gap-3">
+              <h2 class="h5 mb-1">{{ bill.card_name }}</h2>
+              <strong>{{ bill.amount_minor|money }}</strong>
+            </div>
+            <p class="text-body-secondary mb-2">
+              Due {{ bill.due_date }}
+              <span class="badge {{ 'text-bg-success' if bill.paid else 'text-bg-warning' }}">
+                {{ 'Paid' if bill.paid else 'Unpaid' }}
+              </span>
+            </p>
+            {% if bill.notes %}<p class="note-text mb-3">{{ bill.notes }}</p>{% endif %}
+            <div class="d-flex align-items-center gap-2">
+              {% if not bill.paid %}
+                <form method="post" action="{{ url_for('expenses.mark_bill_paid', record_id=bill.id) }}">
+                  {{ action_form.hidden_tag() }}
+                  <button class="btn btn-sm btn-success" type="submit">Mark paid</button>
+                </form>
+              {% endif %}
+              <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('expenses.edit_bill', record_id=bill.id) }}">Edit</a>
+              {{ delete_button(url_for('expenses.delete_bill', record_id=bill.id)) }}
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <div class="card">
+          <div class="card-body py-5 text-center text-body-secondary">No credit card bills yet.</div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+<dialog class="neu-dialog" id="bill-dialog" data-has-errors="{{ 'true' if form.errors else 'false' }}" aria-labelledby="bill-dialog-title">
+  <div class="dialog-panel"><div class="dialog-header"><h2 class="h4 mb-0" id="bill-dialog-title">Add bill</h2><button class="btn-close" type="button" data-dialog-close aria-label="Close bill form"></button></div><div class="dialog-body">{{ render_form(form, 'Save bill', dialog=true) }}</div></div>
+</dialog>
+{% endblock %}

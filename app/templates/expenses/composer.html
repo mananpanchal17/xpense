@@ -1,0 +1,32 @@
+<dialog id="expense-composer" class="composer-dialog" aria-labelledby="compose-title" aria-keyshortcuts="c Meta+k Control+k">
+  <div class="sheet-handle" data-sheet-handle aria-hidden="true"><span></span></div>
+  <div class="dialog-header"><h2 id="compose-title" class="mb-0">Add transaction</h2><button type="button" class="btn-close" data-compose-close aria-label="Close transaction form"></button></div>
+  <form id="compose-form" class="dialog-body" method="post" action="{{ url_for('expenses.add') }}" data-async-form>
+    {{ action_form.hidden_tag() }}
+    <div class="composer-type" aria-label="Transaction type"><button type="button" data-compose-kind="expense" aria-pressed="true">Expense</button><button type="button" data-compose-kind="income" aria-pressed="false">Income</button></div>
+    <input type="hidden" name="kind" value="expense">
+    <label id="compose-amount-label" for="compose-amount" class="form-label mt-3">Amount · INR</label><input id="compose-amount" class="composer-amount" name="amount" type="number" inputmode="decimal" step="0.01" min="0.01" max="999999999.99" placeholder="0.00" required autocomplete="off" aria-describedby="compose-amount-error"><span id="compose-amount-error" class="field-error" data-error-for="amount"></span>
+    <div class="composer-fields">
+      <div><label class="form-label" for="compose-category">Category</label><select id="compose-category" class="form-select" name="category_id" required aria-describedby="compose-category-error"><option value="">Choose category</option>{% for id,name in composer_categories %}<option value="{{ id }}">{{ name }}</option>{% endfor %}</select><span id="compose-category-error" class="field-error" data-error-for="category_id"></span></div>
+      <div><label class="form-label" for="compose-date">Date</label><input id="compose-date" class="form-control" name="date" type="date" value="{{ today }}" required aria-describedby="compose-date-error"><span id="compose-date-error" class="field-error" data-error-for="date"></span></div>
+      <div><label class="form-label" for="compose-account">Account</label><select id="compose-account" class="form-select" name="account_id" aria-describedby="compose-account-error"><option value="0">No account · INR</option>{% for id,name in composer_accounts %}<option value="{{ id }}">{{ name }}</option>{% endfor %}</select><span id="compose-account-error" class="field-error" data-error-for="account_id"></span></div>
+    </div>
+    <details class="dialog-more mt-3"><summary>Notes & payment method</summary><label class="form-label mt-3" for="compose-notes">Notes</label><textarea id="compose-notes" class="form-control" name="notes" rows="2" maxlength="500" aria-describedby="compose-notes-error"></textarea><span id="compose-notes-error" class="field-error" data-error-for="notes"></span><label class="form-label mt-3" for="compose-payment">Payment method</label><select id="compose-payment" name="payment_method" class="form-select">{% for payment in ['Cash','UPI','Debit card','Credit card','Bank transfer','Other'] %}<option>{{ payment }}</option>{% endfor %}</select><span class="field-error" data-error-for="payment_method"></span></details>
+    <div class="composer-footer"><span id="compose-status" role="status" aria-live="polite" class="composer-status"></span><button type="submit" class="btn btn-primary">Save transaction</button></div>
+  </form>
+</dialog>
+<dialog id="linked-composer" class="composer-dialog" aria-labelledby="linked-title">
+  <div class="sheet-handle" data-sheet-handle aria-hidden="true"><span></span></div>
+  <div class="dialog-header"><h2 id="linked-title" class="mb-0">Refund or split expense</h2><button class="btn-close" type="button" data-linked-close aria-label="Close refund or split form"></button></div>
+  <form id="linked-form" class="dialog-body" data-async-form>
+    {{ action_form.hidden_tag() }}
+    <label class="form-label" for="linked-mode">Action</label><select id="linked-mode" class="form-select"><option value="refund">Record refund</option><option value="split">Split into two categories</option></select>
+    <p id="linked-original" class="small text-body-secondary mt-2"></p>
+    <div id="refund-fields"><label class="form-label" for="refund-amount">Refund amount</label><input id="refund-amount" class="form-control" type="number" step="0.01" min="0.01" required><label class="form-label mt-3" for="refund-date">Refund date</label><input id="refund-date" class="form-control" type="date" value="{{ today }}" required></div>
+    <div id="split-fields" hidden>{% for part in [1,2] %}<fieldset class="mt-3"><legend class="h6">Category {{ part }}</legend><label class="form-label" for="split-category-{{ part }}">Category</label><select id="split-category-{{ part }}" class="form-select"><option value="">Choose category</option>{% for id,name in composer_categories %}<option value="{{ id }}">{{ name }}</option>{% endfor %}</select><label class="form-label mt-2" for="split-amount-{{ part }}">Amount</label><input id="split-amount-{{ part }}" type="number" class="form-control" min="0.01" step="0.01"></fieldset>{% endfor %}<p class="small text-body-secondary mt-2">Both amounts must add up to the original expense.</p></div>
+    <label class="form-label mt-3" for="linked-notes">Notes</label><textarea id="linked-notes" class="form-control" maxlength="500" rows="2"></textarea>
+    <div class="composer-footer"><span id="linked-status" role="status" aria-live="polite"></span><button type="submit" class="btn btn-primary">Save</button></div>
+  </form>
+</dialog>
+
+
